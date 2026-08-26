@@ -1,4 +1,4 @@
-from ip_address_helper import port_segment, is_valid_ip, check_text_mask, sanitize_address, finalize_network
+from ip_address_helper import port_segment, is_valid_ip, check_text_mask, sanitize_address, finalize_network, is_compatible_port
 from write_read_helper import save_to_file
 
 class Model:
@@ -49,26 +49,45 @@ class Model:
     def incurred_error(self, msg: str):
         self.error_msg = msg
 
-    def validate_ports(self, field_name):
+    def validate_user_input_ports(self, field_name):
+        print("Validate User Input Ports: Running port validation...")
         if field_name == "Source":
+            print(f"Validating ports for {field_name}")
             if not self.src_port.strip():
-                return None
-            src_ports = self.src_port.split()
-            if len(src_ports) > 10:
-                self.error_msg = f"Source Port: maximum of 10 ports per line"
-            if not all(p.isdigit() for p in src_ports):
-                self.error_msg =  f"Source Port: ports must be numbers separated by spaces"
+                print("No ports detected")
+                return True
+            else:
+                src_ports = self.src_port.split()
+                if len(src_ports) > 10:
+                    print("Error: Too many ports. Allowed max of 10")
+                    return False
+                else:
+                    print("There are less than 10 ports. Inspecting each port individually")
+                    for port in src_ports:
+                        print(f"Inspecting port: {port}")
+                        compatible = is_compatible_port(port)
+                        if not compatible:
+                             return False
+                    return True
 
-        if field_name == "Destination":
-            dest_raw = self.dest_port.strip()
-            if not dest_raw:
-                return None
-            dest_ports = dest_raw.split()
-            if len(dest_ports) > 10:
-                return f"Destination Port: maximum of 10 ports per line"
-            if not all(p.isdigit() for p in dest_ports):
-                return f"Destination Port: ports must be numbers separated by spaces"
-        return None
+        elif field_name == "Destination":
+            print(f"Validating ports for {field_name}")
+            if not self.dest_port.strip():
+                print("No ports detected.")
+                return True
+            else:
+                dest_ports = self.dest_port.split()
+                if len(dest_ports) > 10:
+                    print("Error: Too many ports. Allowed max of 10")
+                    return False
+                else:
+                    print("There are less than 10 ports. Inspecting each port individually")
+                    for port in dest_ports:
+                        print(f"Inspecting port: {port}")
+                        compatible = is_compatible_port(port)
+                        if not compatible:
+                            return False
+                    return True
 
     def validate_user_input_ip(self, field_name):
         if field_name == "Source":

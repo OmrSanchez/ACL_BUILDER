@@ -1,4 +1,6 @@
 import ipaddress
+from cisco_ports_aliases import tcp_ports_named, udp_ports_named
+
 
 def port_segment(operator, port):
     port = (port or "").strip()
@@ -46,3 +48,22 @@ def finalize_network(network):
         return "any"
     else:
         return f"{net.network_address} {net.hostmask}"
+
+def is_compatible_port(port):
+    if not port.isdigit():
+        print("Port is not a digit")
+        if port.lower() in udp_ports_named:
+            print("Port in compatible list of udp ports")
+            return True
+        elif port.lower() in tcp_ports_named:
+            print("Port in compatible list of tcp ports")
+            return True
+        else:
+            return False
+    else:
+        if 1 <= int(port) <= 65535:
+            return True
+        else:
+            return False
+
+

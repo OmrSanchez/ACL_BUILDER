@@ -22,7 +22,7 @@ class Controller:
             self.numbered = values["--NUMBERED_ENTRIES--"]
 
             if event == "--Add_Rule--":
-                print("Adding Rule...")
+                print("\nAdding Rule...")
                 self.model.acl_type = values["--ACL_TYPE--"]
                 self.model.acl_name = values["--ACL_NAME--"]
                 self.model.action = values["--ACTION--"]
@@ -37,16 +37,20 @@ class Controller:
                 self.model.dest_port_option = values["--DEST_PO--"]
 
                 is_standard = self.model.acl_type == "Standard"
-                self.view.update_error_msg(self.model.validate_ports(SOURCE) )
-                self.view.update_error_msg(self.model.validate_ports(DESTINATION))
-                print("ports are valid")
+
+                src_valid_ports = self.model.validate_user_input_ports(SOURCE)
+                dest_valid_ports = self.model.validate_user_input_ports(DESTINATION)
 
                 src_valid_ip = self.model.validate_user_input_ip(SOURCE)
                 src_valid_mask = self.model.validate_user_input_mask(SOURCE)
                 dest_valid_ip = self.model.validate_user_input_ip(DESTINATION)
                 dest_valid_mask = self.model.validate_user_input_mask(DESTINATION)
 
-                if not src_valid_ip:
+                if not src_valid_ports:
+                    print("Source port validation failed")
+                elif not dest_valid_ports:
+                    print("Destination port validation failed")
+                elif not src_valid_ip:
                     print("Source ip validation failed")
                 elif not dest_valid_ip:
                     print("Destination ip validation failed")

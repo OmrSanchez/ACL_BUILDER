@@ -1,0 +1,3 @@
+tcp_ports_named = ["bgp", "chargen", "cmd", "daytime", "discard", "domain", "echo", "exec", "finger", "ftp", "ftp-data", "gopher", "hostname", "ident", "irc", "klogin", "kshell", "login", "lpd", "msrpc", "nntp", "pim-auto-rp", "pop2", "pop3", "smtp", "sunrpc", "tacacs", "talk", "telnet", "time", "uucp", "whois", "www"]
+
+udp_ports_named = ["biff", "bootpc", "bootps", "discard", "dnsix", "domain", "echo", "isakmp", "mobile-ip", "nameserver", "netbios-dgm", "netbios-ns", "netbios-ss", "non500-isakmp", "ntp", "pim-auto-rp", "rip", "snmp", "snmptrap", "sunrpc", "syslog", "tacacs", "talk", "tftp", "time", "who", "xdmcp"]
