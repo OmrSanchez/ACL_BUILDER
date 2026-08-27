@@ -2,7 +2,6 @@ import io, base64
 import FreeSimpleGUI as sg
 from PIL import Image
 
-# ---- style constants --------------------------------------------------------
 FONT      = ("Consolas", 11)
 FONT_BOLD = ("Consolas", 11, "bold")
 FONT_HDR  = ("Consolas", 12, "bold")
@@ -28,7 +27,6 @@ router_blue = image_byte("images/router_blue.png")
 right_arrow = image_byte("images/right-arrow.png")
 isp_image   = image_byte("images/isp.png")
 
-# ---- element helpers (tkinter: size is in CHARACTERS) ----------------------
 def tag(text, width=6, bg=NEUTRAL_BG, fg=NEUTRAL_FG):
     return sg.Text(text, size=(width, 1), justification="center", pad=(2, 2),
                    relief=sg.RELIEF_SUNKEN, border_width=1,
@@ -51,7 +49,6 @@ sg.theme("LightGrey1")
 
 menu = [['&File', ['&Open::open', '&Save::--SAVE--']]]
 
-# ---- settings bar -----------------------------------------------------------
 settings_bar = [[
     sg.Text("Type", font=FONT_BOLD),
     combo(["Standard", "Extended"], "Extended", 12, "--ACL_TYPE--"),
@@ -65,7 +62,6 @@ settings_bar = [[
     sg.Checkbox("Numbered", default=False, key="--NUMBERED_ENTRIES--", enable_events=True, font=FONT),
 ]]
 
-# ---- rule card --------------------------------------------------------------
 rule_card = [
     [header("Rule"), sg.Push(), add_btn("+ Add rule", "--Add_Rule--")],
     [
@@ -84,7 +80,6 @@ rule_card = [
     ],
 ]
 
-# ---- remark card ------------------------------------------------------------
 remark_card = [
     [header("Remark"), sg.Push(), add_btn("+ Add remark", "--Add_Remark--")],
     [
@@ -97,13 +92,13 @@ remark_card = [
     ],
 ]
 
-# ---- action strip -----------------------------------------------------------
 action_strip = [[
     sg.Button("+ Add deny", key="--Add_Deny--", font=FONT_BOLD),
     sg.Text("", key="--WHERE_OUTPUT--", text_color='green', font=FONT_BOLD, visible=False),
+    sg.Push(),
+    sg.Text('', key='--ERROR--', text_color='red', font=FONT_BOLD, visible=False)
 ]]
 
-# ---- preview panes with flow-diagram headers -------------------------------
 in_pane = [
     [
         tag("IN", 4, DST_BG, DST_FG),
@@ -112,7 +107,7 @@ in_pane = [
         sg.Image(data=isp_image), sg.Push(),
     ],
     [sg.Multiline("(IN PREVIEW) Name your ACL and add rules..", key="--IN_PREVIEW--",
-                  font=FONT, autoscroll=True, expand_x=True, expand_y=True)],
+                  font=FONT, autoscroll=True, expand_x=True, expand_y=True, enable_events=True, disabled=True)],
 ]
 out_pane = [
     [
@@ -123,10 +118,8 @@ out_pane = [
         tag('OUT', 4, DST_BG, DST_FG),
     ],
     [sg.Multiline("(OUT PREVIEW) Name your ACL and add rules..", key="--OUT_PREVIEW--",
-                  font=FONT, autoscroll=True, expand_x=True, expand_y=True)],
+                  font=FONT, autoscroll=True, expand_x=True, expand_y=True, enable_events=True, disabled=True)],
 ]
-
-warning = sg.Text('', key='--ERROR--', text_color='red', font=FONT_BOLD, visible=False)
 
 class View:
     def __init__(self):
@@ -140,7 +133,6 @@ class View:
             [sg.Column(in_pane, expand_x=True, expand_y=True),
              sg.Column(out_pane, expand_x=True, expand_y=True)],
             [sg.Column(action_strip, expand_x=True, pad=(4, 0))],
-            [warning],
         ]
         self.window = sg.Window("ACL Builder", self.layout, resizable=True,
                                 font=FONT, finalize=True)
@@ -150,8 +142,12 @@ class View:
         self.window["--ACL_NAME--"].update(readonly=True, background_color="gray")
         self.window["--ACL_TYPE--"].update(disabled=True)
 
+    def unlock_multiline(self):
+        self.window['--IN_PREVIEW--'].update(disabled=False)
+        self.window['--OUT_PREVIEW--'].update(disabled=False)
+
     def update_error_msg(self, text):
-        self.window["--ERROR--"].update(text)
+        self.window["--ERROR--"].update(text, visible=True)
 
     def refresh_previews(self, in_entries_string, out_entries_string):
         self.window["--IN_PREVIEW--"].update("\n".join(in_entries_string))

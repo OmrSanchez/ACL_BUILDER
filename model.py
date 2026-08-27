@@ -280,6 +280,20 @@ class Model:
         self.enumerate_in_entries()
         self.enumerate_out_entries()
 
+    def update_list_user_manual_change(self, numbered_checked, preview_in, preview_out):
+        user_updated_in = preview_in.split('\n')
+        user_updated_out = preview_out.split('\n')
+        if numbered_checked:
+            if self.in_numbered_entries != user_updated_in:
+                self.in_numbered_entries = user_updated_in
+            if self.out_numbered_entries != user_updated_out:
+                self.out_numbered_entries = user_updated_out
+        else:
+            if self.in_entries != user_updated_in:
+                self.in_entries = user_updated_in
+            if self.out_entries != user_updated_out:
+                self.out_entries = user_updated_out
+
     def save_to_file(self):
         save_to_file(self.acl_name, self.in_rule_preview_multi, self.out_rule_preview_multi)
 

@@ -1,5 +1,7 @@
 import FreeSimpleGUI as sg
 
+from view import View
+
 SOURCE = "Source"
 DESTINATION = "Destination"
 
@@ -40,28 +42,33 @@ class Controller:
 
                 src_valid_ports = self.model.validate_user_input_ports(SOURCE)
                 dest_valid_ports = self.model.validate_user_input_ports(DESTINATION)
-
                 src_valid_ip = self.model.validate_user_input_ip(SOURCE)
                 src_valid_mask = self.model.validate_user_input_mask(SOURCE)
                 dest_valid_ip = self.model.validate_user_input_ip(DESTINATION)
                 dest_valid_mask = self.model.validate_user_input_mask(DESTINATION)
 
                 if not src_valid_ports:
+                    self.view.update_error_msg("Source port validation failed")
                     print("Source port validation failed")
                 elif not dest_valid_ports:
+                    self.view.update_error_msg("Destination port validation failed")
                     print("Destination port validation failed")
                 elif not src_valid_ip:
+                    self.view.update_error_msg("Source ip validation failed")
                     print("Source ip validation failed")
                 elif not dest_valid_ip:
+                    self.view.update_error_msg("Destination ip validation failed")
                     print("Destination ip validation failed")
                 elif not src_valid_mask:
+                    self.view.update_error_msg("Src Mask validation failed")
                     print("Src Mask validation failed")
                 elif not dest_valid_mask:
+                    self.view.update_error_msg("Dest Mask validation failed")
                     print("Dest Mask validation failed")
                 else:
                     print('IPs are valid. Proceeding to add ACL entry...')
-                    self.view.update_error_msg("")
                     self.view.lock_header_controls()
+                    self.view.unlock_multiline()
 
                     if is_standard:
                         self.model.format_src_network()
@@ -140,6 +147,10 @@ class Controller:
                 except (OSError, ValueError):
                     self.view.window["--ERROR--"].update("Something went wrong. Save failed.")
 
+            if event == "--IN_PREVIEW--" or event == "--OUT_PREVIEW--":
+                self.model.update_list_user_manual_change(self.numbered, values["--IN_PREVIEW--"], values["--OUT_PREVIEW--"])
+                # self.model.enumerate_dual_entries()
+
         self.view.window.close()
 
     def preview_entries(self):
@@ -147,6 +158,8 @@ class Controller:
             self.view.refresh_previews(self.model.in_numbered_entries, self.model.out_numbered_entries)
         else:
             self.view.refresh_previews(self.model.in_entries, self.model.out_entries)
+
+
 
 
 
