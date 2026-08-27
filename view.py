@@ -1,6 +1,7 @@
 import io, base64
 import FreeSimpleGUI as sg
 from PIL import Image
+from numpy.ma.core import append
 
 FONT      = ("Consolas", 11)
 FONT_BOLD = ("Consolas", 11, "bold")
@@ -149,9 +150,16 @@ class View:
     def update_error_msg(self, text):
         self.window["--ERROR--"].update(text, visible=True)
 
-    def refresh_previews(self, in_entries_string, out_entries_string):
-        self.window["--IN_PREVIEW--"].update("\n".join(in_entries_string))
-        self.window["--OUT_PREVIEW--"].update("\n".join(out_entries_string))
+    def refresh_previews(self, in_entry):
+        # self.window["--IN_PREVIEW--"].update("\n".join(in_entries_string))
+        # self.window["--OUT_PREVIEW--"].update("\n".join(out_entries_string))
+        self.window["--IN_PREVIEW--"].print(in_entry)
+
+    def get_multiline(self, direction):
+        if direction == 'in':
+            return self.window["--IN_PREVIEW--"].get()
+        else:
+            return self.window["--OUT_PREVIEW--"].get()
 
     def get_event(self):
         return self.window.read()

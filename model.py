@@ -191,8 +191,8 @@ class Model:
     def build_out_entry(self):
         action, protocol = self.rule["action"], self.rule["protocol"]
         source, destination = self.rule["source"], self.rule["destination"]
-        src_port = port_segment(self.rule.get("src_port_operator", ""), self.rule.get("src_port", ""))
-        dest_port = port_segment(self.rule.get("dest_port_operator", ""), self.rule.get("dest_port", ""))
+        src_port = port_segment(self.rule.get("src_port_option", ""), self.rule.get("src_port", ""))
+        dest_port = port_segment(self.rule.get("dest_port_option", ""), self.rule.get("dest_port", ""))
 
         if protocol == "":
             line = " ".join(p for p in [action, source] if p)
@@ -232,9 +232,9 @@ class Model:
 
     def append_acl_name_dual(self):
         if self.in_acl_name not in self.in_entries:
-            self.in_entries.append(self.in_acl_name)
+            self.in_entries.insert(0, self.in_acl_name)
         if self.out_acl_name not in self.out_entries:
-            self.out_entries.append(self.out_acl_name)
+            self.out_entries.insert(0, self.out_acl_name)
 
     def build_in_remark(self):
         self.in_remark = f"remark ***** ALLOW {self.src_remark} to {self.dest_remark} {self.service.upper()} *****"
@@ -258,14 +258,20 @@ class Model:
     def out_number_add(self, number):
         self.out_numbers = self.out_numbers + number
 
-    def enumerate_in_entries(self):
-        if self.in_acl_name not in self.in_numbered_entries:
-            self.in_numbered_entries.insert(0, self.in_acl_name)
-        entry = self.in_entries[-1]
-        if entry is not self.in_acl_name:
-            self.in_number_add(10)
-            numbered_entry = f" {self.in_numbers}{entry}"
-            self.in_numbered_entries.append(numbered_entry)
+    # def enumerate_in_entries(self):
+    #     for num, entry in enumerate(self.in_entries, 1):
+    #         num *=10
+    #
+    #
+    #     print(numbered_in_list)
+    #
+    #     if self.in_acl_name not in self.in_numbered_entries:
+    #         self.in_numbered_entries.insert(0, self.in_acl_name)
+        # entry = self.in_entries[-1]
+        # if entry is not self.in_acl_name:
+        #     self.in_number_add(10)
+        #     numbered_entry = f" {self.in_numbers}{entry}"
+        #     self.in_numbered_entries.append(numbered_entry)
 
     def enumerate_out_entries(self):
         if self.out_acl_name not in self.out_numbered_entries:
