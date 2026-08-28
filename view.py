@@ -1,7 +1,6 @@
 import io, base64
 import FreeSimpleGUI as sg
 from PIL import Image
-from numpy.ma.core import append
 
 FONT      = ("Consolas", 11)
 FONT_BOLD = ("Consolas", 11, "bold")
@@ -46,6 +45,9 @@ def header(text):
 def add_btn(text, key):
     return sg.Button(text, key=key, font=FONT_BOLD)
 
+def add_disabled_btn(text, key):
+    return sg.Button(text, key=key, font=FONT_BOLD, disabled=True)
+
 sg.theme("LightGrey1")
 
 menu = [['&File', ['&Open::open', '&Save::--SAVE--']]]
@@ -55,16 +57,17 @@ settings_bar = [[
     combo(["Standard", "Extended"], "Extended", 12, "--ACL_TYPE--"),
     sg.Text("Name", font=FONT_BOLD),
     field("NAME_HERE", 28, "--ACL_NAME--"),
+    add_btn("+ Set Name", "--Set_Name--"),
     sg.Push(),
     sg.Radio('Both', group_id=1, default=True, enable_events=True, key="--BOTH_IN_OUT--", font=FONT_BOLD),
     sg.Radio('In', group_id=1, enable_events=True, key="--IN_ONLY--", font=FONT_BOLD),
     sg.Radio('Out', group_id=1, enable_events=True, key="--OUT_ONLY--", font=FONT_BOLD),
     sg.Text("   "),
-    sg.Checkbox("Numbered", default=False, key="--NUMBERED_ENTRIES--", enable_events=True, font=FONT),
+    sg.Checkbox("Numbered", default=False, key="--NUMBERED_ENTRIES--", enable_events=True, font=FONT, disabled=True),
 ]]
 
 rule_card = [
-    [header("Rule"), sg.Push(), add_btn("+ Add rule", "--Add_Rule--")],
+    [header("Rule"), sg.Push(), add_disabled_btn("+ Add rule", "--Add_Rule--")],
     [
         combo(['permit', 'deny'], 'permit', 8, "--ACTION--"),
         combo(['ip', 'tcp', 'udp', 'icmp'], 'ip', 6, "--PROTOCOL--"),
@@ -82,7 +85,7 @@ rule_card = [
 ]
 
 remark_card = [
-    [header("Remark"), sg.Push(), add_btn("+ Add remark", "--Add_Remark--")],
+    [header("Remark"), sg.Push(), add_disabled_btn("+ Add remark", "--Add_Remark--")],
     [
         tag('remark', 6), tag("*****", 5), tag('Allow', 5),
         field('LID/FAC1', 12, "--SRC_REMARK--"),
@@ -94,7 +97,7 @@ remark_card = [
 ]
 
 action_strip = [[
-    sg.Button("+ Add deny", key="--Add_Deny--", font=FONT_BOLD),
+    sg.Button("+ Add deny", key="--Add_Deny--", font=FONT_BOLD, disabled=True),
     sg.Text("", key="--WHERE_OUTPUT--", text_color='green', font=FONT_BOLD, visible=False),
     sg.Push(),
     sg.Text('', key='--ERROR--', text_color='red', font=FONT_BOLD, visible=False)
@@ -107,7 +110,7 @@ in_pane = [
         sg.Image(data=router_blue), sg.Image(data=right_arrow),
         sg.Image(data=isp_image), sg.Push(),
     ],
-    [sg.Multiline("(IN PREVIEW) Name your ACL and add rules..", key="--IN_PREVIEW--",
+    [sg.Multiline(key="--IN_PREVIEW--",
                   font=FONT, autoscroll=True, expand_x=True, expand_y=True, enable_events=True, disabled=True)],
 ]
 out_pane = [
@@ -118,7 +121,7 @@ out_pane = [
         sg.Image(data=isp_image),
         tag('OUT', 4, DST_BG, DST_FG),
     ],
-    [sg.Multiline("(OUT PREVIEW) Name your ACL and add rules..", key="--OUT_PREVIEW--",
+    [sg.Multiline(key="--OUT_PREVIEW--",
                   font=FONT, autoscroll=True, expand_x=True, expand_y=True, enable_events=True, disabled=True)],
 ]
 
@@ -142,24 +145,26 @@ class View:
     def lock_header_controls(self):
         self.window["--ACL_NAME--"].update(readonly=True, background_color="gray")
         self.window["--ACL_TYPE--"].update(disabled=True)
+        self.window["--Set_Name--"].update(disabled=True)
 
-    def unlock_multiline(self):
+    def unlock_rule_entry_controls(self):
         self.window['--IN_PREVIEW--'].update(disabled=False)
         self.window['--OUT_PREVIEW--'].update(disabled=False)
+        self.window["--Add_Rule--"].update(disabled=False)
+        self.window["--Add_Remark--"].update(disabled=False)
+        self.window["--Add_Deny--"].update(disabled=False)
+
+    def unlock_numbered(self):
+        self.window["--NUMBERED_ENTRIES--"].update(disabled=False)
 
     def update_error_msg(self, text):
         self.window["--ERROR--"].update(text, visible=True)
 
-    def refresh_previews(self, in_entry):
-        # self.window["--IN_PREVIEW--"].update("\n".join(in_entries_string))
-        # self.window["--OUT_PREVIEW--"].update("\n".join(out_entries_string))
-        self.window["--IN_PREVIEW--"].print(in_entry)
+    def update_in(self, in_entry):
+        self.window["--IN_PREVIEW--"].update(f" {in_entry}\n", append=True)
 
-    def get_multiline(self, direction):
-        if direction == 'in':
-            return self.window["--IN_PREVIEW--"].get()
-        else:
-            return self.window["--OUT_PREVIEW--"].get()
+    def update_out(self, out_entry):
+        self.window["--OUT_PREVIEW--"].update(f" {out_entry}\n", append=True)
 
     def get_event(self):
         return self.window.read()

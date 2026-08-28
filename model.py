@@ -1,10 +1,11 @@
 from ip_address_helper import port_segment, is_valid_ip, check_text_mask, sanitize_address, finalize_network, is_compatible_port
 from write_read_helper import save_to_file
+import re
 
 class Model:
     def __init__(self):
-        self.src_port = ""
-        self.dest_port = ""
+        self.deny_entry = "deny ip any any"
+
         self.acl_name = ""
         self.acl_type = ""
         self.action = ""
@@ -14,37 +15,33 @@ class Model:
         self.sanitized_dest_acl_address = ""
         self.dest_target = ""
 
+        self.rule = ""
+
         self.src_ip = ""
         self.src_mask = ""
         self.src_network = ""
-
         self.src_port_option = ""
+        self.src_port = ""
+        self.in_entry = ""
 
         self.dest_ip = ""
         self.dest_mask = ""
         self.dest_network = ""
-
         self.dest_port_option = ""
-        self.rule = ""
-        self.in_entry = ""
+        self.dest_port = ""
         self.out_entry = ""
+
         self.in_acl_name = ""
         self.out_acl_name = ""
-        self.in_entries = []
-        self.out_entries = []
-        self.in_numbered_entries = []
-        self.out_numbered_entries = []
-        self.in_numbers = 0
-        self.out_numbers = 0
+
         self.src_remark = ""
         self.dest_remark = ""
         self.service = ""
+
         self.in_remark = ""
         self.out_remark: str= ""
-        self.error_msg: str = ""
 
-        self.in_rule_preview_multi = ""
-        self.out_rule_preview_multi = ""
+        self.error_msg: str = ""
 
     def incurred_error(self, msg: str):
         self.error_msg = msg
@@ -97,14 +94,15 @@ class Model:
             else:
                 print(f"Source passed ip validate")
                 return is_valid_ip(self.src_ip)
-
-        if field_name == "Destination":
+        elif field_name == "Destination":
             if self.dest_ip.lower() == "any":
                 print(f"Dest passed ip validate")
                 return True
             else:
                 print(f"Dest passed ip validate")
                 return is_valid_ip(self.dest_ip)
+        else:
+            return False
 
     def validate_user_input_mask(self, field_name):
         if field_name == "Source":
@@ -151,29 +149,14 @@ class Model:
 
     def build_standard_rule_map(self):
         self.rule = {"action": self.action, "protocol": "", "source": self.src_target,
-                "destination": "", "src_port_operator": "", "src_port": "",
-                "dest_port_operator": "", "dest_port": ""}
+                "destination": "", "src_port_option": "", "src_port": "",
+                "dest_port_option": "", "dest_port": ""}
 
     def build_extended_rule_map(self):
         self.rule = {"action": self.action, "protocol": self.protocol,
                 "source": self.src_target, "destination": self.dest_target,
                 "src_port_option": self.src_port_option, "src_port": self.src_port.strip(),
                 "dest_port_option": self.dest_port_option, "dest_port": self.dest_port.strip()}
-
-    def build_dual_rule_entries(self):
-        action, protocol = self.rule["action"], self.rule["protocol"]
-        source, destination = self.rule["source"], self.rule["destination"]
-        src_port = port_segment(self.rule.get("src_port_option", ""), self.rule.get("src_port", ""))
-        dest_port = port_segment(self.rule.get("dest_port_option", ""), self.rule.get("dest_port", ""))
-        if protocol == "":
-            line = " ".join(p for p in [action, source] if p)
-            self.in_entry = line
-            self.out_entry = line
-
-        in_entry_parts = [action, protocol, source, src_port, destination, dest_port]
-        out_entry_parts = [action, protocol, destination, dest_port, source, src_port]
-        self.in_entry = " ".join(p for p in in_entry_parts if p)
-        self.out_entry = " ".join(p for p in out_entry_parts if p)
 
     def build_in_entry(self):
         action, protocol = self.rule["action"], self.rule["protocol"]
@@ -201,105 +184,21 @@ class Model:
         out_entry_parts = [action, protocol, destination, dest_port, source, src_port]
         self.out_entry = " ".join(p for p in out_entry_parts if p)
 
-    def append_in_entry(self):
-        self.append_acl_name_dual()
-        self.in_entries.append(f" {self.in_entry}")
-
-    def append_out_entry(self):
-        self.append_acl_name_dual()
-        self.out_entries.append(f" {self.out_entry}")
-
-    def append_dual_entries(self):
-        self.append_in_entry()
-        self.append_out_entry()
-
-    def name_acl(self):
-        kind = "standard" if self.acl_type == "Standard" else "extended"
-        self.in_acl_name = f"ip access-list {kind} {self.acl_name}_IN"
-        self.out_acl_name = f"ip access-list {kind} {self.acl_name}_OUT"
-
-    def append_in_remark(self):
-        self.append_acl_name_dual()
-        self.in_entries.append(f" {self.in_remark}")
-
-    def append_out_remark(self):
-        self.append_acl_name_dual()
-        self.out_entries.append(f" {self.out_remark}")
-
-    def append_dual_path_remark(self):
-        self.append_in_remark()
-        self.append_out_remark()
-
-    def append_acl_name_dual(self):
-        if self.in_acl_name not in self.in_entries:
-            self.in_entries.insert(0, self.in_acl_name)
-        if self.out_acl_name not in self.out_entries:
-            self.out_entries.insert(0, self.out_acl_name)
-
     def build_in_remark(self):
-        self.in_remark = f"remark ***** ALLOW {self.src_remark} to {self.dest_remark} {self.service.upper()} *****"
+        self.in_remark = f"remark ***** PERMIT {self.src_remark.upper()} to {self.dest_remark.upper()} {self.service.upper()} *****"
 
     def build_out_remark(self):
-        self.out_remark = f"remark ***** ALLOW {self.dest_remark} to {self.src_remark} {self.service.upper()} *****"
+        self.out_remark = f"remark ***** PERMIT {self.dest_remark.upper()} to {self.src_remark.upper()} {self.service.upper()} *****"
 
-    def build_dual_path_remark(self):
-        self.build_in_remark()
-        self.build_out_remark()
+    def build_first_acl_in_entry(self):
+        kind = "standard" if self.acl_type == "Standard" else "extended"
+        name = re.sub(r'[^a-zA-Z0-9]+', '_', self.acl_name).strip('_')
+        return f"ip access-list {kind} {name.upper()}_IN\n"
 
-    def append_deny(self):
-        self.append_acl_name_dual()
-        self.in_entries.append(" deny ip any any")
-        self.out_entries.append(" deny ip any any")
-        self.enumerate_dual_entries()
-
-    def in_number_add(self, number):
-        self.in_numbers = self.in_numbers + number
-
-    def out_number_add(self, number):
-        self.out_numbers = self.out_numbers + number
-
-    # def enumerate_in_entries(self):
-    #     for num, entry in enumerate(self.in_entries, 1):
-    #         num *=10
-    #
-    #
-    #     print(numbered_in_list)
-    #
-    #     if self.in_acl_name not in self.in_numbered_entries:
-    #         self.in_numbered_entries.insert(0, self.in_acl_name)
-        # entry = self.in_entries[-1]
-        # if entry is not self.in_acl_name:
-        #     self.in_number_add(10)
-        #     numbered_entry = f" {self.in_numbers}{entry}"
-        #     self.in_numbered_entries.append(numbered_entry)
-
-    def enumerate_out_entries(self):
-        if self.out_acl_name not in self.out_numbered_entries:
-            self.out_numbered_entries.insert(0, self.out_acl_name)
-        entry = self.out_entries[-1]
-        if entry is not self.out_acl_name:
-            self.out_number_add(10)
-            numbered_entry = f" {self.out_numbers}{entry}"
-            self.out_numbered_entries.append(numbered_entry)
-
-    def enumerate_dual_entries(self):
-        self.enumerate_in_entries()
-        self.enumerate_out_entries()
-
-    def update_list_user_manual_change(self, numbered_checked, preview_in, preview_out):
-        user_updated_in = preview_in.split('\n')
-        user_updated_out = preview_out.split('\n')
-        if numbered_checked:
-            if self.in_numbered_entries != user_updated_in:
-                self.in_numbered_entries = user_updated_in
-            if self.out_numbered_entries != user_updated_out:
-                self.out_numbered_entries = user_updated_out
-        else:
-            if self.in_entries != user_updated_in:
-                self.in_entries = user_updated_in
-            if self.out_entries != user_updated_out:
-                self.out_entries = user_updated_out
+    def build_first_acl_out_entry(self):
+        kind = "standard" if self.acl_type == "Standard" else "extended"
+        name = re.sub(r'[^a-zA-Z0-9]+', '_', self.acl_name).strip('_')
+        return f"ip access-list {kind} {name.upper()}_OUT\n"
 
     def save_to_file(self):
         save_to_file(self.acl_name, self.in_rule_preview_multi, self.out_rule_preview_multi)
-

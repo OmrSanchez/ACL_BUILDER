@@ -1,8 +1,5 @@
 import FreeSimpleGUI as sg
 
-from model import Model
-from view import View
-
 SOURCE = "Source"
 DESTINATION = "Destination"
 
@@ -24,10 +21,16 @@ class Controller:
 
             self.numbered = values["--NUMBERED_ENTRIES--"]
 
-            if event == "--Add_Rule--":
-                print("\nAdding Rule...")
+            if event == "--Set_Name--":
                 self.model.acl_type = values["--ACL_TYPE--"]
                 self.model.acl_name = values["--ACL_NAME--"]
+                self.view.window["--IN_PREVIEW--"].update(self.model.build_first_acl_in_entry())
+                self.view.window["--OUT_PREVIEW--"].update(self.model.build_first_acl_out_entry())
+                self.view.lock_header_controls()
+                self.view.unlock_rule_entry_controls()
+
+            if event == "--Add_Rule--":
+                print("\nAdding Rule...")
                 self.model.action = values["--ACTION--"]
                 self.model.protocol = values["--PROTOCOL--"]
                 self.model.src_ip = values["--SRC_IP--"]
@@ -69,108 +72,89 @@ class Controller:
                 else:
                     print('IPs are valid. Proceeding to add ACL entry...')
                     self.view.lock_header_controls()
-                    self.view.unlock_multiline()
+                    self.view.unlock_rule_entry_controls()
+                    self.view.unlock_numbered()
 
                     if is_standard:
                         self.model.format_src_network()
-                        self.model.name_acl()
                         self.model.build_standard_rule_map()
-
                         self.work_entries(values)
                     else:
                         self.model.format_src_network()
                         self.model.format_dest_network()
-                        self.model.name_acl()
                         self.model.build_extended_rule_map()
-
                         self.work_entries(values)
 
-                    self.preview_entries(values)
-
             if event == "--Add_Remark--":
-                self.model.acl_type = values["--ACL_TYPE--"]
-                self.model.acl_name = values["--ACL_NAME--"]
                 self.model.src_remark = values["--SRC_REMARK--"]
                 self.model.dest_remark = values["--DEST_REMARK--"]
                 self.model.service = values["--SVC--"]
-
                 self.view.lock_header_controls()
-                self.model.name_acl()
-
                 self.work_remarks(values)
-                self.preview_entries(values)
 
             if event == "--Add_Deny--":
                 self.model.acl_type = values["--ACL_TYPE--"]
                 self.model.acl_name = values["--ACL_NAME--"]
                 self.view.lock_header_controls()
-                self.model.name_acl()
-                self.model.append_deny()
-
-                self.preview_entries(values)
+                self.work_denies(values)
 
             if event == "--NUMBERED_ENTRIES--":
-                self.preview_entries(values)
+                pass
 
             if event == "Save::--SAVE--":
-                print(event)
                 try:
-                    self.model.in_rule_preview_multi = values["--IN_PREVIEW--"]
-                    self.model.out_rule_preview_multi = values["--OUT_PREVIEW--"]
-
                     self.model.save_to_file()
                     self.view.window["--WHERE_OUTPUT--"].update(f"Output file: {self.model.acl_name}.txt", visible=True)
                 except (OSError, ValueError):
                     self.view.window["--ERROR--"].update("Something went wrong. Save failed.")
 
-            if event == "--IN_PREVIEW--" or event == "--OUT_PREVIEW--":
-                self.model.update_list_user_manual_change(self.numbered, values["--IN_PREVIEW--"], values["--OUT_PREVIEW--"])
+            # if event == "--IN_PREVIEW--":
+            #   in_multiline = self.view.window["
+            # or event == "--OUT_PREVIEW--":
+            #     self.model.update_list_user_manual_change(self.numbered, values["--IN_PREVIEW--"], values["--OUT_PREVIEW--"])
 
         self.view.window.close()
 
-    def preview_entries(self, values):
-        if self.numbered:
-            multiline_text = self.view.get_multiline('in')
-            self.model.in_entries.pop(0)
-            for num, entry in enumerate(self.model.in_entries, 1):
-                num *= 10
-                self.view.refresh_previews(f" {num} {entry}")
-            self.view.window['--IN_PREVIEW--'].update(f"{self.model.in_acl_name}\n {self.view.get_multiline("in")}")
-        else:
-            self.view.refresh_previews(self.model.in_entries)
-
     def work_entries(self, values):
         if values["--BOTH_IN_OUT--"]:
-            self.model.build_dual_rule_entries()
-            self.model.append_dual_entries()
-            # self.model.enumerate_dual_entries()
+            self.model.build_in_entry()
+            self.view.update_in(self.model.in_entry)
+            self.model.build_out_entry()
+            self.view.update_out(self.model.out_entry)
 
         elif values["--IN_ONLY--"]:
             self.model.build_in_entry()
-            self.model.append_in_entry()
-            # self.model.enumerate_in_entries()
+            self.view.update_in(self.model.in_entry)
 
         elif values["--OUT_ONLY--"]:
             self.model.build_out_entry()
-            self.model.append_out_entry()
-            # self.model.enumerate_out_entries()
+            self.view.update_out(self.model.out_entry)
 
     def work_remarks(self, values):
         if values["--BOTH_IN_OUT--"]:
-            self.model.build_dual_path_remark()
-            self.model.append_dual_path_remark()
-            self.model.enumerate_dual_entries()
+            self.model.build_in_remark()
+            self.view.update_in(self.model.in_remark)
+            self.model.build_out_remark()
+            self.view.update_out(self.model.out_remark)
 
         elif values["--IN_ONLY--"]:
             self.model.build_in_remark()
-            self.model.append_in_remark()
-            self.model.enumerate_in_entries()
+            self.view.update_in(self.model.in_remark)
 
         elif values["--OUT_ONLY--"]:
             self.model.build_out_remark()
-            self.model.append_out_remark()
-            self.model.enumerate_out_entries()
+            self.view.update_out(self.model.out_remark)
 
+    def work_denies(self, values):
+        if values["--BOTH_IN_OUT--"]:
+            self.view.update_in(self.model.deny_entry)
+            self.view.update_out(self.model.deny_entry)
+
+        elif values["--IN_ONLY--"]:
+            self.view.update_in(self.model.deny_entry)
+
+        elif values["--OUT_ONLY--"]:
+            self.view.update_out(self.model.deny_entry)
 
 
 
