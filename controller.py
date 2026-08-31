@@ -1,5 +1,8 @@
 import FreeSimpleGUI as sg
 
+from model import Model
+from view import View
+
 SOURCE = "Source"
 DESTINATION = "Destination"
 
@@ -99,7 +102,10 @@ class Controller:
                 self.work_denies(values)
 
             if event == "--NUMBERED_ENTRIES--":
-                pass
+                if values['--NUMBERED_ENTRIES--']:
+                    self.number_entries()
+                if not values['--NUMBERED_ENTRIES--']:
+                    self.view.remove_number_entries(self.model.build_first_acl_in_entry(), self.model.build_first_acl_out_entry())
 
             if event == "Save::--SAVE--":
                 try:
@@ -156,6 +162,8 @@ class Controller:
         elif values["--OUT_ONLY--"]:
             self.view.update_out(self.model.deny_entry)
 
+    def number_entries(self):
+        self.view.number_entries(self.model.build_first_acl_in_entry(), self.model.build_first_acl_out_entry())
 
 
 
