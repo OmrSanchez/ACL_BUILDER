@@ -38,6 +38,9 @@ class Model:
         self.dest_remark = ""
         self.service = ""
 
+        self.in_entries = []
+        self.out_entries = []
+
         self.in_remark = ""
         self.out_remark: str= ""
 
@@ -159,17 +162,24 @@ class Model:
                 "dest_port_option": self.dest_port_option, "dest_port": self.dest_port.strip()}
 
     def build_in_entry(self):
-        action, protocol = self.rule["action"], self.rule["protocol"]
-        source, destination = self.rule["source"], self.rule["destination"]
+        action, protocol = self.rule["action"].strip(), self.rule["protocol"].strip()
+        source, destination = self.rule["source"].strip(), self.rule["destination"].strip()
         src_port = port_segment(self.rule.get("src_port_option", ""), self.rule.get("src_port", ""))
         dest_port = port_segment(self.rule.get("dest_port_option", ""), self.rule.get("dest_port", ""))
 
         if protocol == "":
-            line = " ".join(p for p in [action, source] if p)
+            line = f" {action.strip()}{source.strip()}"
             self.in_entry = line
 
-        in_entry_parts = [action, protocol, source, src_port, destination, dest_port]
-        self.in_entry = " ".join(p for p in in_entry_parts if p)
+        if not src_port and not dest_port:
+            in_entry_extended = f" {action} {protocol} {source} {destination}"
+        elif not src_port:
+            in_entry_extended = f" {action} {protocol} {source} {destination} {dest_port}"
+        elif not dest_port:
+            in_entry_extended = f" {action} {protocol} {source} {src_port} {destination}"
+        else:
+            in_entry_extended = f" {action} {protocol} {source} {src_port} {destination} {dest_port}"
+        self.in_entry = in_entry_extended
 
     def build_out_entry(self):
         action, protocol = self.rule["action"], self.rule["protocol"]
@@ -178,17 +188,35 @@ class Model:
         dest_port = port_segment(self.rule.get("dest_port_option", ""), self.rule.get("dest_port", ""))
 
         if protocol == "":
-            line = " ".join(p for p in [action, source] if p)
+            line = f" {action.strip()}{destination.strip()}"
             self.out_entry = line
 
-        out_entry_parts = [action, protocol, destination, dest_port, source, src_port]
-        self.out_entry = " ".join(p for p in out_entry_parts if p)
+        out_entry_extended = f" {action.rstrip()} {protocol.rstrip()} {destination.strip()} {dest_port.rstrip()} {source.rstrip()} {src_port.rstrip()}"
+        self.out_entry = out_entry_extended
 
     def build_in_remark(self):
         self.in_remark = f"remark ***** PERMIT {self.src_remark.upper()} to {self.dest_remark.upper()} {self.service.upper()} *****"
 
     def build_out_remark(self):
         self.out_remark = f"remark ***** PERMIT {self.dest_remark.upper()} to {self.src_remark.upper()} {self.service.upper()} *****"
+
+    def add_in(self, text):
+        self.in_entries.append(text)
+
+    def add_out(self, text):
+        self.out_entries.append(text)
+
+    def _render_numbered(self, entries, header, numbered):
+        lines = [header.rstrip("\n")]
+        for i, entry in enumerate(entries, 1):
+            lines.append(f" {i * 10}{entry}" if numbered else entry)
+        return "\n".join(lines)
+
+    def render_in(self, numbered):
+        return self._render_numbered(self.in_entries, self.build_first_acl_in_entry(), numbered)
+
+    def render_out(self, numbered):
+        return self._render_numbered(self.out_entries, self.build_first_acl_out_entry(), numbered)
 
     def build_first_acl_in_entry(self):
         kind = "standard" if self.acl_type == "Standard" else "extended"
@@ -201,4 +229,16 @@ class Model:
         return f"ip access-list {kind} {name.upper()}_OUT\n"
 
     def save_to_file(self):
-        save_to_file(self.acl_name, self.in_rule_preview_multi, self.out_rule_preview_multi)
+        in_to_write = "\n".join(self.in_entries)
+        out_to_write = "\n".join(self.out_entries)
+        with open(f"{self.acl_name}.txt", "w+") as file:
+            file.write("!\n")
+            file.write(self.build_first_acl_in_entry())
+            for entry in self.in_entries:
+                file.write(f" {entry}\n")
+            file.write("!\n")
+            file.write(self.build_first_acl_out_entry())
+            for entry in self.out_entries:
+                file.write(f" {entry}\n")
+            file.write("!")
+

@@ -1,8 +1,5 @@
 import FreeSimpleGUI as sg
 
-from model import Model
-from view import View
-
 SOURCE = "Source"
 DESTINATION = "Destination"
 
@@ -102,39 +99,26 @@ class Controller:
                 self.work_denies(values)
 
             if event == "--NUMBERED_ENTRIES--":
-                if values['--NUMBERED_ENTRIES--']:
-                    self.number_entries()
-                if not values['--NUMBERED_ENTRIES--']:
-                    self.view.remove_number_entries(self.model.build_first_acl_in_entry(), self.model.build_first_acl_out_entry())
+                self.refresh()
 
             if event == "Save::--SAVE--":
-                try:
-                    self.model.save_to_file()
-                    self.view.window["--WHERE_OUTPUT--"].update(f"Output file: {self.model.acl_name}.txt", visible=True)
-                except (OSError, ValueError):
-                    self.view.window["--ERROR--"].update("Something went wrong. Save failed.")
-
-            # if event == "--IN_PREVIEW--":
-            #   in_multiline = self.view.window["
-            # or event == "--OUT_PREVIEW--":
-            #     self.model.update_list_user_manual_change(self.numbered, values["--IN_PREVIEW--"], values["--OUT_PREVIEW--"])
+                 self.save_to_file()
 
         self.view.window.close()
 
     def work_entries(self, values):
         if values["--BOTH_IN_OUT--"]:
-            self.model.build_in_entry()
-            self.view.update_in(self.model.in_entry)
-            self.model.build_out_entry()
-            self.view.update_out(self.model.out_entry)
-
+            self.model.build_in_entry();
+            self.model.add_in(self.model.in_entry)
+            self.model.build_out_entry();
+            self.model.add_out(self.model.out_entry)
         elif values["--IN_ONLY--"]:
-            self.model.build_in_entry()
-            self.view.update_in(self.model.in_entry)
-
+            self.model.build_in_entry();
+            self.model.add_in(self.model.in_entry)
         elif values["--OUT_ONLY--"]:
-            self.model.build_out_entry()
-            self.view.update_out(self.model.out_entry)
+            self.model.build_out_entry();
+            self.model.add_out(self.model.out_entry)
+        self.refresh()
 
     def work_remarks(self, values):
         if values["--BOTH_IN_OUT--"]:
@@ -162,9 +146,16 @@ class Controller:
         elif values["--OUT_ONLY--"]:
             self.view.update_out(self.model.deny_entry)
 
-    def number_entries(self):
-        self.view.number_entries(self.model.build_first_acl_in_entry(), self.model.build_first_acl_out_entry())
+    def refresh(self):
+        self.view.set_in(self.model.render_in(self.numbered))
+        self.view.set_out(self.model.render_out(self.numbered))
 
+    def save_to_file(self):
+            try:
+                self.model.save_to_file()
+                self.view.window["--WHERE_OUTPUT--"].update(f"Output file: {self.model.acl_name}.txt", visible=True)
+            except (OSError, ValueError):
+                self.view.window["--ERROR--"].update("Something went wrong. Save failed.")
 
 
 

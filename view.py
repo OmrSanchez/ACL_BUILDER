@@ -161,60 +161,16 @@ class View:
         self.window["--ERROR--"].update(text, visible=True)
 
     def update_in(self, in_entry):
-        self.window["--IN_PREVIEW--"].update(f" {in_entry}\n", append=True)
+        self.window["--IN_PREVIEW--"].update(f"{ in_entry}\n", append=True)
 
     def update_out(self, out_entry):
-        self.window["--OUT_PREVIEW--"].update(f" {out_entry}\n", append=True)
+        self.window["--OUT_PREVIEW--"].update(f"{ out_entry}\n", append=True)
 
-    def number_entries(self, in_name, out_name):
-        in_entries = self.window['--IN_PREVIEW--'].get()
-        out_entries = self.window['--OUT_PREVIEW--'].get()
+    def set_in(self, text):
+        self.window['--IN_PREVIEW--'].update(text)
 
-        numbered_in = []
-        numbered_out = []
-
-        in_entries = in_entries.split('\n')
-        in_entries.pop(0)
-        for num, entry in enumerate(in_entries, 1):
-            num *= 10
-            numbered_in.append(f" {num}{entry}")
-        numbered_in = "\n".join(numbered_in)
-
-        self.window['--IN_PREVIEW--'].update(in_name)
-        self.window['--IN_PREVIEW--'].update(numbered_in, append=True)
-
-        out_entries = out_entries.split('\n')
-        out_entries.pop(0)
-        for num, entry in enumerate(out_entries, 1):
-            num *= 10
-            numbered_out.append(f" {num}{entry}")
-        numbered_out = "\n".join(numbered_out)
-
-        self.window['--OUT_PREVIEW--'].update(out_name)
-        self.window['--OUT_PREVIEW--'].update(numbered_out, append=True)
-
-    def remove_number_entries(self, in_name, out_name):
-        in_entries = self.window['--IN_PREVIEW--'].get()
-        out_entries = self.window['--OUT_PREVIEW--'].get()
-
-        entry_list_in = []
-        entry_list_out = []
-
-        in_entries = in_entries.split('\n')
-        in_entries.pop(0)
-        for entry in in_entries:
-            entry_list_in.append(entry[3:])
-        entry_list_in = '\n'.join(entry_list_in)
-        self.window['--IN_PREVIEW--'].update(in_name)
-        self.window['--IN_PREVIEW--'].update(entry_list_in, append=True)
-
-        out_entries = out_entries.split('\n')
-        out_entries.pop(0)
-        for entry in out_entries:
-            entry_list_out.append(entry[3:])
-        entry_list_out = '\n'.join(entry_list_out)
-        self.window['--OUT_PREVIEW--'].update(out_name)
-        self.window['--OUT_PREVIEW--'].update(entry_list_out, append=True)
+    def set_out(self, text):
+        self.window['--OUT_PREVIEW--'].update(text)
 
     def get_event(self):
         return self.window.read()
