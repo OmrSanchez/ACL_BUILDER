@@ -191,7 +191,14 @@ class Model:
             line = f" {action.strip()}{destination.strip()}"
             self.out_entry = line
 
-        out_entry_extended = f" {action.rstrip()} {protocol.rstrip()} {destination.strip()} {dest_port.rstrip()} {source.rstrip()} {src_port.rstrip()}"
+        if not src_port and not dest_port:
+            out_entry_extended = f" {action} {protocol} {source} {destination}"
+        elif not src_port:
+            out_entry_extended = f" {action} {protocol} {source} {destination} {dest_port}"
+        elif not dest_port:
+            out_entry_extended = f" {action} {protocol} {source} {src_port} {destination}"
+        else:
+            out_entry_extended = f" {action} {protocol} {source} {src_port} {destination} {dest_port}"
         self.out_entry = out_entry_extended
 
     def build_in_remark(self):
@@ -229,8 +236,6 @@ class Model:
         return f"ip access-list {kind} {name.upper()}_OUT\n"
 
     def save_to_file(self):
-        in_to_write = "\n".join(self.in_entries)
-        out_to_write = "\n".join(self.out_entries)
         with open(f"{self.acl_name}.txt", "w+") as file:
             file.write("!\n")
             file.write(self.build_first_acl_in_entry())
